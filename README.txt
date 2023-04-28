@@ -5,7 +5,7 @@ Prerequisites:
 * Virtual Machine Support
 * Windows Subsystem for Linux
 2. install podman desktop, which will install, initialize and run podman.
-3. configuring local registry for insecure connection
+3. configure local registry for insecure connection
 
 IMPORTANT: IT DOES NOT WORK FOR WSL2!!! at least I cannot get it to work on WSL2
   Per documentation published all over the web, you need to create
