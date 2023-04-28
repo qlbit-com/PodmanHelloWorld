@@ -1,4 +1,4 @@
-This is a demo for Java devironment with Podman containerization.
+This is a demo for Java dev environment with Podman containerization.
 To be used on Windows.
 Prerequisites:
 1. enable Windows fearures via "turn Windows features on or off":

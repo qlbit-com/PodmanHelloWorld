@@ -4,24 +4,8 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="bfe7aacc-2160-4471-80ca-a4eb18d8b6ba" name="Changes" comment="created">
-      <change afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/README.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/build.gradle" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/gradle/wrapper/gradle-wrapper.jar" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/gradle/wrapper/gradle-wrapper.properties" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/gradlew" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/gradlew.bat" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/helloworld.iml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/helloworld.ipr" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/helloworld.iws" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/helloworld.main.iml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/helloworld.test.iml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/rebuild.cmd" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/regstart.cmd" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/settings.gradle" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/example/HelloWorld.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/resources/world" afterDir="false" />
+    <list default="true" id="bfe7aacc-2160-4471-80ca-a4eb18d8b6ba" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/README.txt" beforeDir="false" afterPath="$PROJECT_DIR$/README.txt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -205,7 +189,7 @@
       <updated>1682626230716</updated>
       <workItem from="1682626231812" duration="6076000" />
       <workItem from="1682696052100" duration="1047000" />
-      <workItem from="1682701203477" duration="3923000" />
+      <workItem from="1682701203477" duration="4152000" />
     </task>
     <task id="LOCAL-00001" summary="scripting added">
       <created>1682649380676</created>
@@ -228,7 +212,14 @@
       <option name="project" value="LOCAL" />
       <updated>1682650698036</updated>
     </task>
-    <option name="localTasksCounter" value="4" />
+    <task id="LOCAL-00004" summary="created">
+      <created>1682710180080</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1682710180080</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -237,7 +228,8 @@
   <component name="VcsManagerConfiguration">
     <MESSAGE value="scripting added" />
     <MESSAGE value="cosmetics" />
-    <option name="LAST_COMMIT_MESSAGE" value="cosmetics" />
+    <MESSAGE value="created" />
+    <option name="LAST_COMMIT_MESSAGE" value="created" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
