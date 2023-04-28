@@ -1,0 +1,54 @@
+plugins {
+  id 'java'
+  id 'com.google.cloud.tools.jib' version '3.3.1'
+}
+
+group = 'example:helloworld:0.1' // groupId:artifact:version
+// groupId is a component\package name like 'com.google.guava'
+
+java {
+  sourceCompatibility = 1.8
+  targetCompatibility = 1.8
+}
+
+repositories {
+  mavenCentral()
+}
+
+dependencies {
+//  implementation 'com.google.guava:guava:23.6-jre'
+}
+
+jar { // see group above; artifact.jar will be created
+}
+
+jib {
+  allowInsecureRegistries = true  // when pushing to localhost which has no SSL
+  containerizingMode = 'packaged' // to allow app code in jar instead of plain filesystem
+  from {
+    image = 'openjdk:alpine'
+  }
+  to {
+    image = 'localhost:5000/my-image/built-with-jib'
+//    credHelper = 'osxkeychain'
+//    tags = [ 'tag2', 'latest' ]
+  }
+  container {
+    jvmFlags = [ '-Dmy.property=example.value', '-Xms512m', '-Xdebug',
+                 '-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005' ] // set suspend=y to wait
+    mainClass = 'example.HelloWorld'
+    args = [ 'some', 'args' ]
+    ports = [ '5005' ] // 5005 -- debugger port, see jvmFlags above
+//    ports = [ '1000', '2000-2003/udp' ]
+//    labels = [ key1 : 'value1', key2 : 'value2' ]
+//      environment = [
+//            'VERSION': version
+//            'DATA_DIR': '/data',
+//            'APPLICATION_PORT' : '80',
+//            'DEVELOPMENT_MODE' : 'false'
+//      ]    
+    format = 'OCI'
+  }
+}
+
+
