@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.stream.Collectors;
 
@@ -18,5 +19,7 @@ public class HelloWorld
         .collect( Collectors.joining( "\n" ) );
       System.out.println( "Hello " + world );
     }
+    final InetAddress ipAddress = InetAddress.getLocalHost();
+    System.out.println( "IP of my system is : " + ipAddress.getHostAddress() );
   }
 }

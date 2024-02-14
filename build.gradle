@@ -1,36 +1,42 @@
+
 plugins {
-  id 'java'
-  id 'com.google.cloud.tools.jib' version '3.3.1'
-}
-
-group = 'example:helloworld:0.1' // groupId:artifact:version
-// groupId is a component\package name like 'com.google.guava'
-
-java {
-  sourceCompatibility = 1.8
-  targetCompatibility = 1.8
-}
-
-repositories {
-  mavenCentral()
+  id 'com.google.cloud.tools.jib' version '3.4.0'
 }
 
 dependencies {
 //  implementation 'com.google.guava:guava:23.6-jre'
 }
 
-jar { // see group above; artifact.jar will be created
+clean {
+  delete exportDir
+}
+
+jar {
+  from ( rootProject.projectDir ) { 
+    include 'LICENSE.txt' 
+  }
+  manifest { attributes manifestAttributes }
 }
 
 jib {
-  allowInsecureRegistries = true  // when pushing to localhost which has no SSL
+  System.properties[ 'jib.useOnlyProjectCache' ] = 'true'  //DP: jib to use cache in scope of the project
+  // if you're using podman --> cleanest way is to:
+  //  * on linux: create alias in .bashrc file:
+  //      alias docker='podman'
+  //  * on windows: create symbolic link while in "C:\Program Files\RedHat\Podman\":
+  //      mklink docker.exe "C:\Program Files\RedHat\Podman\podman.exe"
+  allowInsecureRegistries = true  // when pushing to localhost which has no SSL, comment out otherwise
   containerizingMode = 'packaged' // to allow app code in jar instead of plain filesystem
-  from {
-    image = 'openjdk:alpine'
+  from { // -al2 is Amazon Linux, -alpine is Alpine Linux
+    image = 'amazoncorretto:8u402-alpine'  // 'amazoncorretto:8u402-al2' 'openjdk:alpine'
   }
   to {
-    image = 'localhost:5000/my-image/built-with-jib'
-//    credHelper = 'osxkeychain'
+    image = "localhost:5000/${rootProject.group}/${snakeCase(rootProject.name)}"
+
+//    auth {
+//      username System.env[ 'REPO_USER' ]
+//      password System.env[ 'REPO_PASSWORD' ]
+//    }
 //    tags = [ 'tag2', 'latest' ]
   }
   container {
@@ -47,8 +53,56 @@ jib {
 //            'APPLICATION_PORT' : '80',
 //            'DEVELOPMENT_MODE' : 'false'
 //      ]    
+    creationTime = new Date().format( "yyyy-MM-dd'T'HH:mm:ssZ" )
     format = 'OCI'
+    extraDirectories {
+      paths {
+        path { // copies the contents of project '/config' into '/config' on the container
+          from = rootProject.file( 'config' )
+          into = '/config'
+        }
+      }
+    }
   }
 }
 
+task deleteImage( type: Exec ) {
+  doFirst {
+    exec {
+      executable 'docker'
+      args 'stop', rootProject.name //DP: using rootproject name as container name
+      ignoreExitValue = true
+      errorOutput { null }
+    }
+    exec {
+      executable 'docker'
+      args 'rm', rootProject.name //DP: using rootproject name as container name
+      ignoreExitValue = true
+      errorOutput { null }
+    }
+  }
+  executable 'docker'
+  args 'rmi', '-f', jib.to.image
+}
+
+task startContainer( type: Exec ) {
+  executable 'docker'
+  args 'run', '-d', '--name', rootProject.name, '-p', '5005:5005', jib.to.image
+}
+
+jibBuildTar {
+  dependsOn deleteImage
+  doLast {
+    exec {
+      executable 'docker'
+      args 'load', '-i', project.file( 'build/jib-image.tar' )
+    }
+  }
+  finalizedBy startContainer
+}
+
+jibDockerBuild {
+  dependsOn deleteImage
+  finalizedBy startContainer
+}
 

@@ -1,0 +1,159 @@
+def projectInfo = [
+  name        : 'PodmanHelloWorld',
+  version     : '1.0.0',
+  description : 'PodmanHelloWorld'
+]
+
+//--[do not change anything below this line]-----------------
+
+// specifying version or other variable from commandline 'gradlew -Pversion=1.1 clean build'
+// to release use commandline -Prelease=true
+// that sets rootProject.properties.release and hence published to nexus instead mavenLocal
+// see allProjects.publishing below
+
+//DP: to disable publishing sha128 and sha256
+System.properties[ 'org.gradle.internal.publish.checksums.insecure' ] = 'true'
+
+rootProject.name = projectInfo.name
+gradle.rootProject {
+  version = projectInfo.version
+  group = 'com.qlbit'
+
+  ext {
+    encoding = 'UTF-8'
+    exportDir = "$rootDir/export"
+    product = projectInfo.description
+    vendor  = 'QlBit'
+    manifestAttributes = [ //DP: build with JDK11+ to keep manifest order in jars
+      'Created-By'             : "Gradle ${gradle.gradleVersion}",
+      'Built-By'               : System.properties[ 'user.name' ],
+      'Built-On'               : new Date().format( 'yyyy-MM-dd HH:mm:ss.SSSZ' ),
+      'Git-tag'                : 'git rev-parse HEAD'.execute().text.trim(),
+      'Git-branch'             : 'git rev-parse --abbrev-ref HEAD'.execute().text.trim(),
+      'Sealed'                 : true,
+      'Implementation-Title'   : product,
+      'Implementation-Version' : version,
+      'Implementation-Vendor'  : vendor,
+      'Specification-Title'    : product,
+      'Specification-Version'  : version,
+      'Specification-Vendor'   : vendor
+    ]
+    snakeCase = { String str ->
+      return str.replaceAll( /\B[A-Z]/) { '-' + it }.toLowerCase()
+    }
+  }
+
+  allprojects {
+    apply plugin: 'java-library'
+    apply plugin: 'maven-publish'
+
+    configurations.all {
+      resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
+      resolutionStrategy.cacheDynamicVersionsFor 0, 'seconds'
+    }
+
+//    sourceSets {  // uncomment if you like resources and java code in single source tree
+//      main.resources.srcDirs = main.java.srcDirs
+//      test.resources.srcDirs = test.java.srcDirs
+//    }
+
+    java {
+      sourceCompatibility = 1.8
+      targetCompatibility = 1.8
+    }
+
+    test {
+      outputs.upToDateWhen { false }
+      testLogging {
+        events 'passed', 'skipped', 'failed'
+        showStandardStreams = true
+        exceptionFormat 'full'
+        stackTraceFilters 'entryPoint'
+      }
+    }
+
+    compileJava.options.encoding     = encoding //DP: defined in settings.gradle as ext.encoding, see above
+    compileTestJava.options.encoding = encoding
+    javadoc.options.encoding         = encoding
+    test.defaultCharacterEncoding    = encoding
+
+    repositories {
+      mavenLocal {
+        name = 'qlbitSnapshots'
+      }
+      mavenCentral {
+        content {  // this repository contains everything BUT artifacts with group starting with "com.qlbit"
+          excludeGroupByRegex 'com\\.qlbit.*'
+        }
+      }
+      maven {
+        url  = 'https://maven.qlbit.com/repository/maven-snapshots'
+        credentials {
+          username System.env[ 'QLBIT_MAVEN_USER' ]
+          password System.env[ 'QLBIT_MAVEN_PASSWORD' ]
+        }
+      }
+      maven {
+        name = 'qlbitReleases'
+        url  = 'https://maven.qlbit.com/repository/maven'
+        credentials {
+          username System.env[ 'QLBIT_MAVEN_USER' ]
+          password System.env[ 'QLBIT_MAVEN_PASSWORD' ]
+        }
+      }
+    }
+
+    tasks.withType( Jar ).configureEach {
+      destinationDirectory = file( exportDir )
+      archiveBaseName = project.archivesBaseName.toLowerCase()
+      archiveVersion = rootProject.version
+    }
+
+    task javadocJar( type: Jar, dependsOn: javadoc ) {
+      archiveClassifier = 'javadoc'
+      from ( javadoc.destinationDir )
+      from ( rootProject.projectDir ) { include 'LICENSE.txt' }
+      manifest { attributes manifestAttributes }
+    }
+
+    publishing {
+      repositories {
+        add project.repositories[ null == rootProject.properties.release ? 'qlbitSnapshots' : 'qlbitReleases' ]
+      }
+      publications {
+        myPublications( MavenPublication ) {
+          groupId = rootProject.group
+          artifactId = artifactId.toLowerCase()
+          version = rootProject.version
+          from ( components.java )          // publishes output of jar task
+          artifact tasks.javadocJar
+          versionMapping {
+            allVariants {
+              fromResolutionResult()
+            }
+          }
+          pom {
+            description = product
+            developers {
+              developer {
+                id    = 'dmitriy'
+                name  = 'Dmitriy Pichugin'
+                email = 'dmitriy@qlbit.com'
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+//DP: if you need subprojects -- include them
+//
+//def includeModule( String name, String location ) {
+//  include name
+//  project( ":${name}" ).projectDir = file( location )
+//}
+//
+//includeModule( 'maintenance', 'modules/maintenance' )
+//includeModule( 'security', 'modules/security-module' )

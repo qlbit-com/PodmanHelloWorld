@@ -54,7 +54,7 @@ Build `hello world` app and run it in podman container
 * it rebuilds Java code
 * creates jar file with the code
 * packages it into image on top of openjdk:alpine
-* pushes it to local image registry as localhost:5000/my-image/built-with-jib
+* pushes it to local image registry as localhost:5000/com.qlbit/podman-hello-world
 * cleans up previously existed container [if any]
-* refreshes localhost:5000/my-image/built-with-jib in podman
-* request podman to run local image localhost:5000/my-image/built-with-jib
+* refreshes localhost:5000/com.qlbit/podman-hello-world in podman
+* request podman to run local image localhost:5000/com.qlbit/podman-hello-world in container PodmanHelloWorld
