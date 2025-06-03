@@ -1,0 +1,205 @@
+Podman installation and configuration for remote access on fresh linux box:
+I use "Fedora42 server" distro from https://fedoraproject.org/server/download/
+
+Download bootable image for baremetal installation or image for virtual machine of your choice.
+I use baremetal install: 
+ a) Download image, burn image on DVD, boot small "Lenovo P320 Tiny" box from that DVD.
+    Hardware details: CPU i7-7700T, RAM 64GB, SSD: 256GB nvme, LAN: 1GBit.
+    at the time of installation you will need: keyboard, mouse and a monitor,
+    when Fedora42 server is installed you can put this box on the shelf,
+    you will access you box via ssh or HTTPS, so keyboard, mouse and a monitor
+    will not be needed later.                    
+ b) Run installation with configuration as follows:
+    * network: 
+         ip:      192.168.1.53
+         mask:    255.255.255.0
+         gateway: 192.168.1.1
+         DNS:     192.168.1.1,8.8.8.8
+         ip6:     disabled
+    * admin user: dmitriy 
+    * root user:  disabled   
+
+ it takes 5 min to install "Fedora42 server" after first boot it is ready for Podman setup.
+ You can conect to that linux box via ssh, or via nice cockpit web UI: https://192.168.1.53:9090
+ before you start installing podman
+ c) Apply updates:
+         sudo dnf update
+ d) Reboot linux host, because some updates require reboot to become effective
+         sudo reboot
+
+Now you're ready to install Podman:
+
+ON LINUX BOX:
+ 1) install podman  
+ REF: https://podman.io/docs/installation
+ for Fedora 42 linux:
+         sudo dnf -y install podman
+         sudo dnf -y install podman-machine
+ 2) configure user to get extended subgids\subuids to allow user to pull and store images for podman: 
+ REF: https://github.com/containers/podman/issues/12715 --scroll to the bottom for solution
+         sudo usermod --add-subgids 10000-75535 dmitriy
+         sudo usermod --add-subuids 10000-75535 dmitriy
+         podman system migrate
+ 3) enable podman socket for remote connection, and activate autostart for it after reboot
+ that will allow remote connection to podman via podman socket
+ REF: https://www.jetbrains.com/help/idea/podman.html#connection_issues
+         systemctl --user enable podman.socket
+         loginctl enable-linger dmitriy
+         sudo systemctl start podman.socket
+         sudo systemctl enable podman.socket
+ 4) open range of ports for podman containers to be visible on the network
+         sudo firewall-cmd --permanent --add-port=8000-9000/tcp
+         sudo firewall-cmd --reload 
+ 5) enable podman containers autostart on linux box reboot 
+ bulk restart on system reboot[using schedule on reboot with crontab, that works on Fedora 42]:
+ REF: https://99rdp.com/how-to-execute-a-command-on-linux-after-boot-or-startup/  -- see "Method #3" there
+  5.1) login with desired user
+  5.2) type 
+         crontab -e
+       vim editor will opens
+  5.3) add a line
+         @reboot podman start --filter restart-policy=always --filter restart-policy=unless-stopped
+  5.4) to save the text and exit the vim editor:
+         press [CTRL]+[C]
+         type  :wq
+         press [ENTER]
+  
+  NOTE: restart policy "always" is identical to policy "unless-stopped"
+ 
+
+ON CLIENT SIDE, like on WINDOWS laptop:
+ 1) create id_ed25519 signature for authertication -- that will allow passwordless access
+      ssh-keygen -t ed25519 -f %USERPROFILE%\.ssh\id_ed25519
+ 2) copy "id_ed25519.pub" public key to remote linux box for your user "dmitriy" on remote linux host "192.168.1.53"
+      type %USERPROFILE%\.ssh\id_ed25519.pub | ssh dmitriy@192.168.1.53 "mkdir .ssh ; cat >> .ssh/authorized_keys"
+ or 
+      ssh dmitriy@192.168.1.53 "mkdir ~/.ssh ; cat >> ~/.ssh/authorized_keys" < %USERPROFILE%\.ssh\id_ed25519.pub
+ 3) locate podman's socket path for your user "dmitriy" on linux host "192.168.1.53"   
+      ssh dmitriy@192.168.1.53 podman info | grep sock  
+ it will output something like: 
+      path: /run/user/1000/podman/podman.sock
+ 4) create a connection named "fedora42" to remote linux host "192.168.1.53" for user "dmitriy", use hostname and path similar to provided below: 
+      podman system connection add fedora42 --identity %USERPROFILE%\.ssh\id_ed25519 ssh://dmitriy@192.168.1.53/run/user/1000/podman/podman.sock
+
+
+
+===========================
+
+RUNNING a container on remote linux host host using connection "fedora42":
+      podman --connection=fedora42 run -it -d --restart unless-stopped -p 8082:80 --name web1738 docker.io/library/nginx:latest
+that "web1738" container will be started on remote linux box, 
+it will survive linux box reboot -- container will be started automatically after linux box reboot [see item #5 for linux box]
+
+in your browser visit: http://192.168.1.53:8082     -- use HTTP not HTTPS, it should work
+try to reboot linux box, wait 30 seconds
+then visit http://192.168.1.53:8082 again -- it should work after reboot
+
+
+NOTE: restart policy "always" is identical to policy "unless-stopped"
+
+============================
+
+OTHER USEFUL COMMANDS [to be used on the CLIENT, like your WINDOWS laptop]:
+* show remote connections
+      podman system connection list
+* remove remote connection by name "fedora42" 
+      podman system connection remove fedora42
+* show running containers on remote host using connection "fedora42"
+      podman --connection=fedora42 ps 
+* stop container by name "web1738" on remote host using connection "fedora42"
+      podman --connection=fedora42 stop web1738 
+* kill container by name "web1738" on remote host using connection "fedora42"
+      podman --connection=fedora42 kill web1738 
+* remove container by name "web1738" on remote host using connection "fedora42"
+      podman --connection=fedora42 rm web1738 
+* start container by name "web1738" [or use --all]
+      podman --connection=fedora42 start web1738 
+
+NOTE: in samples above you may use "--all" to do these commands for all containers
+example: kill all containers on remote host using connection "fedora42"
+      podman --connection=fedora42 kill --all 
+
+
+============================
+============================
+============================
+
+
+----before creating a conection: step 3 below-------------
+REF: https://www.jetbrains.com/help/idea/podman.html#connection_issues
+on linux box:
+
+    systemctl --user enable podman.socket
+    loginctl enable-linger dmitriy
+    sudo systemctl start podman.socket
+    sudo systemctl enable podman.socket
+
+NOTES:
+* on enable-linger: https://news.ycombinator.com/item?id=23064416
+ 
+
+create a connection from windows system to access podman remotely
+ON WINDOWS SYSTEM:
+1) create id_ed25519 signature for authertication
+      ssh-keygen -t ed25519 -f %USERPROFILE%\.ssh\id_ed25519
+2) copy id_ed25519 public key to remote linux box
+      type %USERPROFILE%\.ssh\id_ed25519.pub | ssh dmitriy@192.168.1.53 "mkdir .ssh ; cat >> .ssh/authorized_keys"
+   or 
+      ssh dmitriy@192.168.1.53 "mkdir .ssh ; cat >> .ssh/authorized_keys" < %USERPROFILE%\.ssh\id_ed25519.pub
+3) enable podman socket for remote connection, and activate autostart for it after reboot
+      ssh dmitriy@192.168.1.53 "systemctl --user enable podman.socket ; loginctl enable-linger dmitriy"
+      ssh dmitriy@192.168.1.53
+          sudo systemctl start podman.socket 
+          sudo systemctl enable podman.socket 
+
+4) locate podman's socket path for your user   
+      ssh dmitriy@192.168.1.53 podman info | grep sock  
+   it will output something like: 
+      path: /run/user/1000/podman/podman.sock
+
+5) create a connection to remote host, use hostname and path similar to provided below: 
+      podman system connection add fedora42 --identity %USERPROFILE%\.ssh\id_ed25519 ssh://dmitriy@192.168.1.53/run/user/1000/podman/podman.sock
+
+OTHER COMMANDS:
+* show remote connections
+      podman system connection list
+* remove remote connection
+      podman system connection remove fedora42
+* show running containers
+      podman --connection=fedora42 ps 
+* stop container by name [or use --all]
+      podman --connection=fedora42 stop web1738 
+* kill container by name [or use --all]
+      podman --connection=fedora42 kill web1738 
+* remove container by name [or use --all]
+      podman --connection=fedora42 rm web1738 
+* start container by name [or use --all]
+      podman --connection=fedora42 start web1738 
+
+=====================================
+
+create a container which will be restarted automatically if it breaks:
+      podman --connection=fedora42 run -it -d --restart unless-stopped -p 8082:80 --name web1738 docker.io/library/nginx:latest
+
+NOTE: restart policy "always" is identical to policy "unless-stopped"
+
+
+=====================================
+
+bulk restart on system reboot[using schedule on reboot with crontab]:
+REF: https://99rdp.com/how-to-execute-a-command-on-linux-after-boot-or-startup/
+1) login with desired user
+2) type 
+      crontab -e
+   vim editor will opens
+3) add a line
+      @reboot podman start --filter restart-policy=always --filter restart-policy=unless-stopped
+4) to exit the wim:
+   press [CTRL]+[C]
+   type  :wq
+   press [ENTER]
+
+=====================================
+
+to reboot -- run command:
+   sudo reboot
