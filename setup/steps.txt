@@ -75,7 +75,7 @@ ON CLIENT SIDE, like on WINDOWS laptop:
  or 
       ssh dmitriy@192.168.1.53 "mkdir ~/.ssh ; cat >> ~/.ssh/authorized_keys" < %USERPROFILE%\.ssh\id_ed25519.pub
  3) locate podman's socket path for your user "dmitriy" on linux host "192.168.1.53"   
-      ssh dmitriy@192.168.1.53 podman info | grep sock  
+      ssh dmitriy@192.168.1.53 podman "info | grep sock"
  it will output something like: 
       path: /run/user/1000/podman/podman.sock
  4) create a connection named "fedora42" to remote linux host "192.168.1.53" for user "dmitriy", use hostname and path similar to provided below: 
@@ -119,87 +119,9 @@ NOTE: in samples above you may use "--all" to do these commands for all containe
 example: kill all containers on remote host using connection "fedora42"
       podman --connection=fedora42 kill --all 
 
-
 ============================
 ============================
 ============================
-
-
-----before creating a conection: step 3 below-------------
-REF: https://www.jetbrains.com/help/idea/podman.html#connection_issues
-on linux box:
-
-    systemctl --user enable podman.socket
-    loginctl enable-linger dmitriy
-    sudo systemctl start podman.socket
-    sudo systemctl enable podman.socket
-
-NOTES:
-* on enable-linger: https://news.ycombinator.com/item?id=23064416
- 
-
-create a connection from windows system to access podman remotely
-ON WINDOWS SYSTEM:
-1) create id_ed25519 signature for authertication
-      ssh-keygen -t ed25519 -f %USERPROFILE%\.ssh\id_ed25519
-2) copy id_ed25519 public key to remote linux box
-      type %USERPROFILE%\.ssh\id_ed25519.pub | ssh dmitriy@192.168.1.53 "mkdir .ssh ; cat >> .ssh/authorized_keys"
-   or 
-      ssh dmitriy@192.168.1.53 "mkdir .ssh ; cat >> .ssh/authorized_keys" < %USERPROFILE%\.ssh\id_ed25519.pub
-3) enable podman socket for remote connection, and activate autostart for it after reboot
-      ssh dmitriy@192.168.1.53 "systemctl --user enable podman.socket ; loginctl enable-linger dmitriy"
-      ssh dmitriy@192.168.1.53
-          sudo systemctl start podman.socket 
-          sudo systemctl enable podman.socket 
-
-4) locate podman's socket path for your user   
-      ssh dmitriy@192.168.1.53 podman info | grep sock  
-   it will output something like: 
-      path: /run/user/1000/podman/podman.sock
-
-5) create a connection to remote host, use hostname and path similar to provided below: 
-      podman system connection add fedora42 --identity %USERPROFILE%\.ssh\id_ed25519 ssh://dmitriy@192.168.1.53/run/user/1000/podman/podman.sock
-
-OTHER COMMANDS:
-* show remote connections
-      podman system connection list
-* remove remote connection
-      podman system connection remove fedora42
-* show running containers
-      podman --connection=fedora42 ps 
-* stop container by name [or use --all]
-      podman --connection=fedora42 stop web1738 
-* kill container by name [or use --all]
-      podman --connection=fedora42 kill web1738 
-* remove container by name [or use --all]
-      podman --connection=fedora42 rm web1738 
-* start container by name [or use --all]
-      podman --connection=fedora42 start web1738 
-
-=====================================
-
-create a container which will be restarted automatically if it breaks:
-      podman --connection=fedora42 run -it -d --restart unless-stopped -p 8082:80 --name web1738 docker.io/library/nginx:latest
-
-NOTE: restart policy "always" is identical to policy "unless-stopped"
-
-
-=====================================
-
-bulk restart on system reboot[using schedule on reboot with crontab]:
-REF: https://99rdp.com/how-to-execute-a-command-on-linux-after-boot-or-startup/
-1) login with desired user
-2) type 
-      crontab -e
-   vim editor will opens
-3) add a line
-      @reboot podman start --filter restart-policy=always --filter restart-policy=unless-stopped
-4) to exit the wim:
-   press [CTRL]+[C]
-   type  :wq
-   press [ENTER]
-
-=====================================
 
 to reboot -- run command:
    sudo reboot
